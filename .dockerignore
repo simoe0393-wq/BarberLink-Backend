@@ -1,0 +1,44 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Local environment files
+.env
+.env.backup
+.env.production
+
+# Dependencies (installed during build)
+/vendor
+/node_modules
+
+# Development/build artifacts
+/public/build
+/public/hot
+/public/storage
+
+# Storage (runtime data)
+/storage/*.key
+/storage/logs
+/storage/framework/cache
+/storage/framework/sessions
+/storage/framework/views
+
+# IDE and OS files
+.DS_Store
+Thumbs.db
+.idea
+.vscode
+.cursor
+.zed
+
+# Test files
+phpunit.xml
+/tests
+
+# Documentation
+README.md
+
+# Local scripts / scratch files
+test_*.php
+dummy.*
