@@ -25,18 +25,21 @@ WORKDIR /var/www/html
 # Copy application source (vendor/ and node_modules/ excluded via .dockerignore)
 COPY . /var/www/html
 
-# Step 1: Install packages WITHOUT running post-install scripts (avoids artisan hook)
-#         and WITHOUT generating autoload (we do that after .env is ready)
-RUN composer install --no-interaction --no-scripts --no-autoloader --no-dev
+# Step 1: Install packages + generate autoload, but SKIP all scripts (post-autoload-dump)
+#         --no-scripts  = skip post-autoload-dump (avoids php artisan package:discover)
+#         Note: do NOT use --no-autoloader here, we need vendor/autoload.php for artisan
+RUN composer install --no-interaction --no-scripts --no-dev
 
-# Step 2: Now that vendor/ exists, set up a temporary .env so artisan can bootstrap
+# Step 2: vendor/autoload.php now exists, so artisan can bootstrap.
+#         Create a temporary .env and generate APP_KEY so Laravel can run.
 RUN cp .env.example .env \
     && php artisan key:generate --ansi
 
-# Step 3: Generate optimized autoloader, then run post-autoload-dump scripts
-#         (this runs php artisan package:discover with a working .env)
-RUN composer dump-autoload --optimize \
-    && php artisan package:discover --ansi
+# Step 3: Now run the skipped post-autoload-dump scripts manually (package:discover etc.)
+RUN php artisan package:discover --ansi
+
+# Step 4: Generate optimized autoloader for production
+RUN composer dump-autoload --optimize --no-scripts
 
 # Set correct permissions
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
