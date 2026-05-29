@@ -22,16 +22,21 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Set working directory
 WORKDIR /var/www/html
 
-# Copy application source (vendor/ and node_modules/ are excluded via .dockerignore)
+# Copy application source (vendor/ and node_modules/ excluded via .dockerignore)
 COPY . /var/www/html
 
-# Create a temporary .env from example so artisan can bootstrap during composer install
-# The real env vars will be injected by Render at runtime
+# Step 1: Install packages WITHOUT running post-install scripts (avoids artisan hook)
+#         and WITHOUT generating autoload (we do that after .env is ready)
+RUN composer install --no-interaction --no-scripts --no-autoloader --no-dev
+
+# Step 2: Now that vendor/ exists, set up a temporary .env so artisan can bootstrap
 RUN cp .env.example .env \
     && php artisan key:generate --ansi
 
-# Install PHP dependencies (triggers post-autoload-dump: php artisan package:discover)
-RUN composer install --no-interaction --optimize-autoloader --no-dev
+# Step 3: Generate optimized autoloader, then run post-autoload-dump scripts
+#         (this runs php artisan package:discover with a working .env)
+RUN composer dump-autoload --optimize \
+    && php artisan package:discover --ansi
 
 # Set correct permissions
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
